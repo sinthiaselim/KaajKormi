@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block hero %}
+<div class="dashboard-hero">
+    <div class="container">
+        <h1 class="hero-title">Welcome back, {{ session.get('user_name', 'Worker') }}!</h1>
+        <p class="hero-subtitle">You are making a difference. Keep up the great work!</p>
+
+        <form action="{{ url_for('browse_workers') }}" method="GET" class="search-container">
+            <input type="text" name="q" class="search-input" placeholder="Search other workers...">
+            <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Shared Marketplace View (Categories) -->
+<div style="margin-bottom: 4rem;">
+    <h3 style="text-align: center; margin-bottom: 2rem; font-weight: 700; color: var(--text-color);">Explore Categories
+    </h3>
+    <div class="grid-layout" style="grid-template-columns: repeat(4, 1fr); gap: 1.5rem;">
+        {% set categories = [
+        ('electrician', 'fa-solid fa-bolt', 'Electrician'),
+        ('plumber', 'fa-solid fa-wrench', 'Plumber'),
+        ('house_help', 'fa-solid fa-broom', 'House Help'),
+        ('cleaner', 'fa-solid fa-spray-can-sparkles', 'Cleaner'),
+        ('driver', 'fa-solid fa-car', 'Driver'),
+        ('painter', 'fa-solid fa-paint-roller', 'Painter'),
+        ('ac_repair', 'fa-solid fa-snowflake', 'AC Repair'),
+        ('gardener', 'fa-solid fa-leaf', 'Gardener')
+        ] %}
+        {% for id, icon_class, name in categories %}
+        <a href="{{ url_for('browse_workers', category=id) }}" class="category-link">
+            <div class="category-card">
+                <div class="category-icon"><i class="{{ icon_class }}"></i></div>
+                <h4 class="category-name">{{ name }}</h4>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="dashboard-header">
+    <h2 style="margin: 0;">My Dashboard</h2>
+    <div>
+        <!-- Toggle Availability Mock -->
+        <span style="margin-right: 1rem; font-weight: 600; color: #059669;">● Available</span>
+    </div>
+</div>
+<p class="text-muted">Use the navigation bar to view your requests and history.</p>
+{% endblock %}

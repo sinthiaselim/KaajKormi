@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    <a href="javascript:history.back()" class="btn btn-outline" style="margin-bottom: 2rem;">&larr; Back</a>
+
+    <!-- Profile Header -->
+    <div class="card" style="margin-bottom: 2rem; border-left: 5px solid var(--secondary-color);">
+        <h1 style="margin: 0;">{{ worker.name }}</h1>
+        <p class="text-muted" style="font-size: 1.1rem; margin-top: 0.5rem;">{{ worker.job_category|replace('_', '
+            ')|title }}</p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem;">
+            <div>
+                <p><strong>Location:</strong> <br> {{ worker.address }}</p>
+                <p><strong>Phone:</strong> <br> {{ worker.phone }}</p>
+            </div>
+            <div>
+                <p><strong>Hourly Wage:</strong> <br> ৳{{ worker.wage }}</p>
+                <p><strong>Rating:</strong> <br> <span style="font-size: 1.25rem; color: #f59e0b;">★ {{
+                        worker.rating_avg }}</span> ({{ reviews|length }} reviews)</p>
+            </div>
+        </div>
+
+        {% if session.get('role') == 'customer' %}
+        <form action="{{ url_for('request_service', worker_id=worker.user_id) }}" method="POST"
+            style="margin-top: 2rem;">
+            <button type="submit" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem;">Request
+                Service</button>
+        </form>
+        {% endif %}
+    </div>
+
+    <!-- Rating & Review Form (Only for completed jobs) -->
+    {% if can_review %}
+    <div class="card" style="margin-bottom: 2rem; background: #fffbeb; border: 1px solid #fcd34d;">
+        <h3>Rate this Worker</h3>
+        <p class="text-muted">You recently completed a job with {{ worker.name }}. Share your experience!</p>
+        <form action="{{ url_for('submit_review', request_id=can_review.id) }}" method="POST">
+            <div class="form-group">
+                <label class="form-label">Rating</label>
+                <select name="rating" class="form-control" required style="width: auto;">
+                    <option value="5">5 - Excellent</option>
+                    <option value="4">4 - Good</option>
+                    <option value="3">3 - Average</option>
+                    <option value="2">2 - Poor</option>
+                    <option value="1">1 - Terrible</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Comment</label>
+                <textarea name="comment" class="form-control" rows="3" required
+                    placeholder="Write your review here..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Review</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Reviews Section -->
+    <h3>Reviews</h3>
+    {% if reviews %}
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
+        {% for review in reviews %}
+        <div class="card" style="padding: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                <div style="color: #f59e0b; font-weight: bold;">
+                    {% for i in range(review.rating) %}★{% endfor %}
+                </div>
+                <span class="text-muted" style="font-size: 0.875rem;">{{ review.created_at }}</span>
+            </div>
+            <p style="margin: 0;">{{ review.comment }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted">No reviews yet.</p>
+    {% endif %}
+</div>
+{% endblock %}
