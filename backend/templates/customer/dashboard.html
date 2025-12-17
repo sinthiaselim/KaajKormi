@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block hero %}
+<div class="dashboard-hero">
+    <div class="container">
+        <h1 class="hero-title">What service do you need?</h1>
+        <p class="hero-subtitle">Find trusted service providers in your area</p>
+
+        <form action="{{ url_for('browse_workers') }}" method="GET" class="search-container">
+            <input type="text" name="q" class="search-input" placeholder="Search for 'Electrician' or 'Gulshan'...">
+            <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Category Grid -->
+<div style="margin-bottom: 4rem;">
+    <h3 style="text-align: center; margin-bottom: 2rem; font-weight: 700; color: var(--text-color);">Browse Categories
+    </h3>
+    <div class="grid-layout" style="grid-template-columns: repeat(4, 1fr); gap: 1.5rem;">
+        {% set categories = [
+        ('electrician', 'fa-solid fa-bolt', 'Electrician'),
+        ('plumber', 'fa-solid fa-wrench', 'Plumber'),
+        ('house_help', 'fa-solid fa-broom', 'House Help'),
+        ('cleaner', 'fa-solid fa-spray-can-sparkles', 'Cleaner'),
+        ('driver', 'fa-solid fa-car', 'Driver'),
+        ('painter', 'fa-solid fa-paint-roller', 'Painter'),
+        ('ac_repair', 'fa-solid fa-snowflake', 'AC Repair'),
+        ('gardener', 'fa-solid fa-leaf', 'Gardener')
+        ] %}
+        {% for id, icon_class, name in categories %}
+        <a href="{{ url_for('browse_workers', category=id) }}" class="category-link">
+            <div class="category-card">
+                <div class="category-icon"><i class="{{ icon_class }}"></i></div>
+                <h4 class="category-name">{{ name }}</h4>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Quick Link to History -->
+<div class="alert alert-info"
+    style="display: flex; justify-content: space-between; align-items: center; max-width: 800px; margin: 0 auto;">
+    <span>Need to check your status?</span>
+    <a href="{{ url_for('my_requests') }}" class="btn btn-primary" style="font-size: 0.9rem;">My Requests</a>
+</div>
+
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h2>My Requests</h2>
+    <a href="{{ url_for('customer_dashboard') }}" class="btn btn-outline">&larr; Back to Dashboard</a>
+</div>
+
+{% if my_requests %}
+<div style="overflow-x: auto;">
+    <table
+        style="width: 100%; border-collapse: collapse; margin-top: 1rem; background: white; border-radius: 0.5rem; overflow: hidden; box-shadow: var(--shadow);">
+        <thead style="background: #f9fafb;">
+            <tr>
+                <th style="padding: 1rem; text-align: left;">Worker</th>
+                <th style="padding: 1rem; text-align: left;">Category</th>
+                <th style="padding: 1rem; text-align: left;">Date</th>
+                <th style="padding: 1rem; text-align: left;">Status</th>
+                <th style="padding: 1rem; text-align: left;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for req in my_requests %}
+            <tr style="border-top: 1px solid var(--border-color);">
+                <td style="padding: 1rem;">{{ req.worker_name }}</td>
+                <td style="padding: 1rem;">{{ req.job_category|replace('_', ' ')|title }}</td>
+                <td style="padding: 1rem;">{{ req.request_date }}</td>
+                <td style="padding: 1rem;">
+                    <span class="status-badge status-{{ req.status }}">
+                        {{ req.status|title }}
+                    </span>
+                </td>
+                <td style="padding: 1rem;">
+                    {% if req.status == 'completed' %}
+                    <span class="text-muted">Paid & Reviewed</span>
+                    {% elif req.status == 'accepted' %}
+                    <a href="{{ url_for('pay_now', request_id=req.id) }}" class="btn btn-success"
+                        style="font-size: 0.875rem;">Pay Now</a>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card" style="text-align: center; padding: 3rem;">
+    <p class="text-muted">You haven't made any service requests yet.</p>
+    <a href="{{ url_for('customer_dashboard') }}" class="btn btn-primary" style="margin-top: 1rem;">Find a Worker</a>
+</div>
+{% endif %}
+{% endblock %}

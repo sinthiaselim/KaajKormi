@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h2>Search Results</h2>
+    <a href="{{ url_for('customer_dashboard') }}" class="btn btn-outline">&larr; Back to Dashboard</a>
+</div>
+
+{% if workers %}
+<div class="grid-layout">
+    {% for worker in workers %}
+    <a href="{{ url_for('worker_profile', worker_id=worker.user_id) }}" class="category-link">
+        <div class="card worker-card">
+            <div class="card-title">{{ worker.name }}</div>
+            <div class="card-meta">{{ worker.job_category|replace('_', ' ')|title }}</div>
+            <div class="worker-details">
+                <strong>Wage:</strong> ৳{{ worker.wage }}/hr <br>
+                <strong>Rating:</strong> {{ worker.rating_avg }} ★ <br>
+                <strong>Location:</strong> {{ worker.address }}
+            </div>
+            <button class="btn btn-primary full-width-btn">View Profile</button>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div style="text-align: center; padding: 3rem;">
+    <p class="text-muted">No workers found matching your criteria.</p>
+    <a href="{{ url_for('customer_dashboard') }}" class="btn btn-primary">Try searching something else</a>
+</div>
+{% endif %}
+{% endblock %}
