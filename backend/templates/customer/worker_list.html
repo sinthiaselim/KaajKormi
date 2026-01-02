@@ -9,17 +9,25 @@
 {% if workers %}
 <div class="grid-layout">
     {% for worker in workers %}
-    <a href="{{ url_for('worker_profile', worker_id=worker.user_id) }}" class="category-link">
-        <div class="card worker-card">
-            <div class="card-title">{{ worker.name }}</div>
-            <div class="card-meta">{{ worker.job_category|replace('_', ' ')|title }}</div>
-            <div class="worker-details">
-                <strong>Wage:</strong> ৳{{ worker.wage }}/hr <br>
-                <strong>Rating:</strong> {{ worker.rating_avg }} ★ <br>
-                <strong>Location:</strong> {{ worker.address }}
+    <a href="{{ url_for('worker_profile', worker_id=worker.user_id) }}" class="category-link"
+        style="text-decoration: none;">
+        <div class="card worker-card"
+            style="padding: 0; overflow: hidden; height: 100%; display: flex; flex-direction: column;">
+            <div style="height: 250px; overflow: hidden;">
+                <img src="{{ get_worker_image(worker.name, worker.user_id) }}" alt="{{ worker.name }}"
+                    class="worker-card-img"
+                    style="height: 100%; width: 100%; object-fit: cover; transition: transform 0.5s;">
             </div>
-            <button class="btn btn-primary full-width-btn">View Profile</button>
-        </div>
+            <div style="padding: 1.5rem; flex: 1; display: flex; flex-direction: column;">
+                <div class="card-title" style="font-size: 1.5rem; margin-bottom: 0.5rem;">{{ worker.name }}</div>
+                <div class="card-meta">{{ worker.job_category|replace('_', ' ')|title }}</div>
+                <div class="worker-details">
+                    <strong>Wage:</strong> ৳{{ worker.wage }}/hr <br>
+                    <strong>Rating:</strong> {{ worker.rating_avg }} ★ <br>
+                    <strong>Location:</strong> {{ worker.address }}
+                </div>
+                <button class="btn btn-primary full-width-btn">View Profile</button>
+            </div>
     </a>
     {% endfor %}
 </div>

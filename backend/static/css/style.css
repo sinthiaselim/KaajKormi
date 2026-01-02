@@ -5,38 +5,84 @@
 }
 
 :root {
-    /* Modern Color Palette */
-    --primary-color: #7c3aed;
-    /* Purple */
-    --secondary-color: #8b5cf6;
-    /* Violet */
-    --accent-color: #10b981;
-    /* Emerald Green */
+    /* Lively & Vibrant Color Palette */
+    --primary-color: #4f46e5;
+    /* Indigo 600 */
+    --primary-light: #818cf8;
+    /* Indigo 400 */
+    --secondary-color: #db2777;
+    /* Pink 600 */
+    --accent-color: #06b6d4;
+    /* Cyan 500 */
+    --accent-glow: rgba(6, 182, 212, 0.4);
+
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
     --danger-color: #ef4444;
-    /* Red */
-    --bg-color: #f8fafc;
-    /* Light Slate */
+
+    --bg-color: #f0f9ff;
+    /* Light Sky Blue Tint */
     --card-bg: #ffffff;
-    --text-color: #1e293b;
-    /* Slate 800 */
+    --text-color: #0f172a;
+    /* Slate 900 */
     --text-muted: #64748b;
     /* Slate 500 */
     --border-color: #e2e8f0;
 
     /* Shadows & Effects */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --radius: 0.75rem;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --shadow-glow: 0 0 15px var(--accent-glow);
+
+    --radius: 1rem;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 body {
     font-family: 'Poppins', sans-serif;
-    background-color: var(--bg-color);
+    /* Lively Gradient Background */
+    background: radial-gradient(circle at 10% 20%, rgb(240, 249, 255) 0%, rgb(224, 242, 254) 90%);
+    min-height: 100vh;
     color: var(--text-color);
     line-height: 1.6;
     margin: 0;
     -webkit-font-smoothing: antialiased;
+}
+
+/* Animations */
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+
+    100% {
+        transform: translateY(0px);
+    }
+}
+
+.animate-enter {
+    animation: fadeInScale 0.6s var(--transition) forwards;
+}
+
+.animate-float {
+    animation: float 4s ease-in-out infinite;
 }
 
 .full-width-btn {
@@ -125,12 +171,31 @@ body {
 .btn-primary {
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
     color: white;
-    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+    border: none;
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transform: translateX(-100%);
+    transition: 0.5s;
+}
+
+.btn-primary:hover::after {
+    transform: translateX(100%);
 }
 
 .btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(79, 70, 229, 0.5);
 }
 
 .btn-outline {
@@ -198,7 +263,20 @@ body {
 
 .card:hover {
     box-shadow: var(--shadow-lg);
-    transform: translateY(-2px);
+    transform: translateY(-8px);
+    border-color: var(--primary-light);
+}
+
+.worker-card:hover .worker-card-img {
+    transform: scale(1.1);
+}
+
+.worker-card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--radius) var(--radius) 0 0;
+    transition: transform 0.5s ease;
 }
 
 .card-title {
@@ -218,8 +296,21 @@ body {
 /* Grid */
 .grid-layout {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
+    /* Enforce 3 columns */
     gap: 2rem;
+}
+
+@media (max-width: 992px) {
+    .grid-layout {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .grid-layout {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Old category styles removed */

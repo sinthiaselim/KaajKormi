@@ -5,6 +5,31 @@ import mysql.connector
 app = Flask(__name__)
 app.secret_key = 'your_super_secret_key'  # Change this for production
 
+# Context Processor for Worker Images
+@app.context_processor
+def utility_processor():
+    def get_worker_image(worker_name, worker_id=0):
+        name_lower = worker_name.lower()
+        
+        # Gender Heuristic for common Bangladeshi/Muslim names
+        female_keywords = ['begum', 'akter', 'khatun', 'sultana', 'parvin', 'ara', 'fatima', 'salma', 'sufia', 'nasrin', 'rina', 'jasmine', 'fahmida', 'sabina', 'monira']
+        
+        is_female = any(keyword in name_lower for keyword in female_keywords)
+        
+        if is_female:
+            # Assign from female images pool (2, 4, 6)
+            img_pool = [2, 4, 6]
+        else:
+            # Assign from male images pool (1, 3, 5)
+            img_pool = [1, 3, 5]
+            
+        # Deterministic assignment based on worker_id, but limited to gender pool
+        idx = (worker_id % len(img_pool))
+        img_id = img_pool[idx]
+        
+        return url_for('static', filename=f'img/workers/worker_{img_id}.png')
+    return dict(get_worker_image=get_worker_image)
+
 # --- Authentication Routes ---
 
 @app.route('/')
