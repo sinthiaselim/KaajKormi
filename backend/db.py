@@ -6,8 +6,8 @@ def get_db_connection():
     try:
         connection = mysql.connector.connect(
             host='localhost',
-            user='sinthiaselim',
-            password='Shoily123@',
+            user='FARABI',
+            password='',
             database='kaajkormi_db'
         )
         return connection
@@ -17,22 +17,28 @@ def get_db_connection():
 
 def init_db():
     """Initialize the database with schema."""
+    # Try connecting to create database first
+    try:
+        conn = mysql.connector.connect(
+            host='localhost',
+            user='FARABI',
+            password=''
+        )
+        cursor = conn.cursor()
+        cursor.execute("CREATE DATABASE IF NOT EXISTS kaajkormi_db")
+        print("Database 'kaajkormi_db' created or already exists.")
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Error as e:
+        print(f"Error creating database: {e}")
+        return
+
+    # Now connect to the database to create tables
     conn = get_db_connection()
     if conn is None:
-        # Try connecting without database to create it
-        try:
-            conn = mysql.connector.connect(
-                host='localhost',
-                user='sinthiaselim',
-                password='Shoily123@'
-            )
-            cursor = conn.cursor()
-            cursor.execute("CREATE DATABASE IF NOT EXISTS kaajkormi_db")
-            print("Database 'kaajkormi_db' created or already exists.")
-            conn.database = 'kaajkormi_db'
-        except Error as e:
-            print(f"Error creating database: {e}")
-            return
+        print("Could not connect to database to create tables.")
+        return
 
     cursor = conn.cursor()
     
