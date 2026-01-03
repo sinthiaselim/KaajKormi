@@ -7,8 +7,36 @@
         <p class="hero-subtitle">Find trusted service providers in your area</p>
 
         <form action="{{ url_for('browse_workers') }}" method="GET" class="search-container">
-            <input type="text" name="q" class="search-input" placeholder="Search for 'Electrician' or 'Gulshan'...">
-            <button type="submit" class="btn btn-primary">Search</button>
+            <!-- Main Search Row -->
+            <div class="search-row">
+                <div class="modern-input-group">
+                    <select name="category" class="search-select">
+                        <option value="">All Categories</option>
+                        <option value="electrician">Electrician</option>
+                        <option value="plumber">Plumber</option>
+                        <option value="house_help">House Help</option>
+                        <option value="cleaner">Cleaner</option>
+                        <option value="driver">Driver</option>
+                        <option value="painter">Painter</option>
+                        <option value="ac_repair">AC Repair</option>
+                        <option value="gardener">Gardener</option>
+                    </select>
+                    <div class="divider"></div>
+                    <input type="text" name="q" class="search-input" placeholder="Search location or name...">
+                </div>
+                <button type="submit" class="btn btn-primary" style="padding: 0.75rem 2rem;">Search</button>
+            </div>
+
+            <!-- Filters Row -->
+            <div class="filters-row">
+                <input type="number" name="wage" class="filter-input" placeholder="Max Wage (৳/hr)">
+                <select name="rating" class="filter-input">
+                    <option value="">Any Rating</option>
+                    <option value="5">5 Stars</option>
+                    <option value="4">4+ Stars</option>
+                    <option value="3">3+ Stars</option>
+                </select>
+            </div>
         </form>
     </div>
 </div>

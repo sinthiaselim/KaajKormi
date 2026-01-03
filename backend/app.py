@@ -146,6 +146,8 @@ def browse_workers():
     
     category_filter = request.args.get('category')
     search_query = request.args.get('q')
+    min_rating = request.args.get('rating')
+    max_wage = request.args.get('wage')
     
     query = """
         SELECT u.name, u.phone, u.address, w.user_id, w.job_category, w.wage, w.rating_avg 
@@ -164,6 +166,14 @@ def browse_workers():
         term = f"%{search_query}%"
         params.append(term)
         params.append(term)
+        
+    if min_rating:
+        query += " AND w.rating_avg >= %s"
+        params.append(min_rating)
+        
+    if max_wage:
+        query += " AND w.wage <= %s"
+        params.append(max_wage)
         
     cursor.execute(query, tuple(params))
     workers = cursor.fetchall()

@@ -359,24 +359,89 @@ body {
     margin-bottom: 2rem;
 }
 
+/* Modern Search Bar */
 .search-container {
-    max-width: 600px;
+    max-width: 950px;
     margin: 0 auto;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    padding: 1rem;
+    border-radius: 1.25rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.2);
     display: flex;
-    gap: 0.5rem;
-    background: white;
-    padding: 0.5rem;
-    border-radius: 0.75rem;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    flex-direction: column;
+    gap: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
-.search-input {
+.search-row {
+    display: flex;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.modern-input-group {
+    background: #f8fafc;
+    border: 2px solid transparent;
+    border-radius: 0.75rem;
+    padding: 0.25rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
     flex: 1;
+}
+
+.modern-input-group:focus-within {
+    border-color: var(--primary-light);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.search-select,
+.search-input {
     border: none;
+    background: transparent;
     padding: 0.75rem 1rem;
     font-size: 1rem;
+    color: var(--text-color);
     outline: none;
+    width: 100%;
+}
+
+.search-select {
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.divider {
+    width: 1px;
+    height: 60%;
+    background-color: #cbd5e1;
+    margin: 0 0.5rem;
+}
+
+/* Secondary filters row */
+.filters-row {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.filter-input {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #e2e8f0;
     border-radius: 0.5rem;
+    padding: 0.6rem 1rem;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    transition: all 0.2s;
+    min-width: 180px;
+}
+
+.filter-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+    background: white;
 }
 
 /* Updated Category Grid for Sheba-like look */
