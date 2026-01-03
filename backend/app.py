@@ -288,12 +288,18 @@ def request_service(worker_id):
     if 'user_id' not in session or session.get('role') != 'customer':
         return redirect(url_for('login'))
         
+    # Optional: Get scheduled date from form, or default to now + 1 day
+    # scheduled_date = request.form.get('scheduled_date') 
+    
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        from datetime import datetime, timedelta
+        default_schedule = datetime.now() + timedelta(days=1)
+        
         cursor.execute(
-            "INSERT INTO requests (customer_id, worker_id, status) VALUES (%s, %s, 'pending')",
-            (session['user_id'], worker_id)
+            "INSERT INTO requests (customer_id, worker_id, status, scheduled_date) VALUES (%s, %s, 'pending', %s)",
+            (session['user_id'], worker_id, default_schedule)
         )
         conn.commit()
         flash('Service request sent!', 'success')
@@ -313,26 +319,33 @@ def pay_now(request_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Calculate amount (Simplified: Just using hourly wage as total for now)
+    # 1. Fetch Request & Worker Wage
     cursor.execute("""
-        SELECT w.wage, r.payment_status 
+        SELECT w.wage, r.id 
         FROM requests r 
         JOIN workers w ON r.worker_id = w.user_id 
         WHERE r.id = %s
     """, (request_id,))
-    data = cursor.fetchone()
-    cursor.close()
-    conn.close()
+    req_data = cursor.fetchone()
     
-    if not data:
+    if not req_data:
+        cursor.close()
+        conn.close()
         flash('Request not found', 'danger')
         return redirect(url_for('customer_dashboard'))
 
-    if data['payment_status'] == 'paid':
+    # 2. Check Payment Status in Payments Table
+    cursor.execute("SELECT status FROM payments WHERE request_id = %s", (request_id,))
+    payment = cursor.fetchone()
+    
+    cursor.close()
+    conn.close()
+
+    if payment and payment['status'] == 'paid':
         flash('Already paid!', 'info')
         return redirect(url_for('customer_dashboard'))
 
-    return render_template('customer/payment_selection.html', request_id=request_id, amount=data['wage'])
+    return render_template('customer/payment_selection.html', request_id=request_id, amount=req_data['wage'])
 
 @app.route('/process_payment/<int:request_id>', methods=['POST'])
 def process_payment(request_id):
@@ -376,7 +389,7 @@ def process_payment(request_id):
                 'quantity': 1,
             }],
             mode='payment',
-            success_url=url_for('payment_success', request_id=request_id, _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+            success_url=url_for('payment_success', request_id=request_id, _external=True) + '?session_id={CHECKOUT_SESSION_ID}&pm=' + payment_method,
             cancel_url=url_for('payment_cancel', _external=True),
         )
         return redirect(checkout_session.url, code=303)
@@ -389,29 +402,43 @@ def payment_success(request_id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    # In a real app, verify session_id with Stripe here
+    payment_method = request.args.get('pm', 'card') # Default to card if from stripe callback
+    
+    # Logic simplification
+    status = 'completed' # Service is completed once paid
+    payment_status = 'pending' if payment_method == 'cash' else 'paid'
     
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    status = 'completed' if payment_method == 'cash' else 'completed' # Logic simplification: auto-complete for now
-    payment_status = 'pending' if payment_method == 'cash' else 'paid' # Cash is pending until worker confirms, Online is paid instantly (mock)
-    
-    cursor.execute("""
-        UPDATE requests 
-        SET status = %s, payment_method = %s, payment_status = %s 
-        WHERE id = %s
-    """, (status, payment_method, payment_status, request_id))
-    
-    conn.commit()
-    cursor.close()
-    conn.close()
-    
-    if 'payment_method' in locals() and payment_method == 'cash':
-        flash('Order confirmed! Please pay cash to the worker.', 'info')
-    else:
-        # Fallback if payment_method is not defined or is online
-        flash('Payment successful! Service marked as completed.', 'success')
+    try:
+        # 1. Update Request Status
+        cursor.execute("UPDATE requests SET status = %s WHERE id = %s", (status, request_id))
+        
+        # 2. Insert into Payments Table
+        # Fetch wage first
+        cursor.execute("SELECT w.wage FROM requests r JOIN workers w ON r.worker_id = w.user_id WHERE r.id = %s", (request_id,))
+        res = cursor.fetchone()
+        wage = res[0] if res else 0
+        
+        cursor.execute("""
+            INSERT INTO payments (request_id, amount_paid, payment_method, status) 
+            VALUES (%s, %s, %s, %s)
+        """, (request_id, wage, payment_method, payment_status))
+        
+        conn.commit()
+        
+        if payment_method == 'cash':
+            flash('Order confirmed! Please pay cash to the worker.', 'info')
+        else:
+            flash('Payment successful! Service marked as completed.', 'success')
+            
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error recording payment: {e}', 'danger')
+    finally:
+        cursor.close()
+        conn.close()
         
     return redirect(url_for('customer_dashboard'))
 

@@ -8,10 +8,14 @@ def wipe_data(cursor):
     """Clear existing data to avoid duplicates."""
     print("Clearing existing data...")
     # Order matters due to foreign keys
-    tables = ['reviews', 'requests', 'workers', 'users']
+    tables = ['reviews', 'payments', 'requests', 'workers', 'users']
     for table in tables:
-        cursor.execute(f"DELETE FROM {table}")
-        cursor.execute(f"ALTER TABLE {table} AUTO_INCREMENT = 1")
+        # Check if table exists before clearing (in case running on old DB)
+        try:
+            cursor.execute(f"DELETE FROM {table}")
+            cursor.execute(f"ALTER TABLE {table} AUTO_INCREMENT = 1")
+        except Error:
+            pass # Table might not exist yet
     print("Data cleared.")
 
 def seed_data():
@@ -34,6 +38,8 @@ def seed_data():
         
         first_names = ["Rahim", "Karim", "Jamal", "Kamal", "Hasan", "Sokina", "Salma", "Fatema", "Ayesha", "Nasrin", "Rafiq", "Jabbar", "Salam", "Borkot", "Sujon", "Mizan", "Tarek", "Rubel", "Sohan", "Nadia", "Farah", "Sadia", "Mitu", "Rina"]
         last_names = ["Uddin", "Mia", "Hossain", "Khan", "Ali", "Begum", "Akter", "Islam", "Ahmed", "Chowdhury", "Sarker", "Rahman", "Haque"]
+        
+        skills_pool = ["Certified", "Expert", "Quick", "Reliable", "English Speaker", "Mask wearer", "Vaccinated", "Low cost"]
 
         def generate_name():
             return f"{random.choice(first_names)} {random.choice(last_names)}"
@@ -59,17 +65,19 @@ def seed_data():
             addr = generate_address()
             cat = random.choice(job_categories)
             wage = random.choice([200, 300, 350, 400, 450, 500, 600, 800, 1000])
+            exp = random.randint(1, 15)
+            skills = ", ".join(random.sample(skills_pool, k=random.randint(1, 3)))
             
             cursor.execute(
-                "INSERT INTO users (name, email, password, role, phone, address) VALUES (%s, %s, %s, 'worker', %s, %s)",
+                "INSERT INTO users (name, email, password, role, phone, address, loyalty_points) VALUES (%s, %s, %s, 'worker', %s, %s, 0)",
                 (name, email, pwd, phone, addr)
             )
             user_id = cursor.lastrowid
             worker_ids.append(user_id)
             
             cursor.execute(
-                "INSERT INTO workers (user_id, job_category, wage, rating_avg) VALUES (%s, %s, %s, %s)",
-                (user_id, cat, wage, round(random.uniform(3.0, 5.0), 2))
+                "INSERT INTO workers (user_id, job_category, wage, experience, skills, rating_avg) VALUES (%s, %s, %s, %s, %s, %s)",
+                (user_id, cat, wage, exp, skills, round(random.uniform(3.0, 5.0), 2))
             )
 
         # 2. Create Customers
@@ -81,15 +89,16 @@ def seed_data():
             pwd = "password123"
             phone = generate_phone()
             addr = generate_address()
+            points = random.randint(0, 500)
             
             cursor.execute(
-                "INSERT INTO users (name, email, password, role, phone, address) VALUES (%s, %s, %s, 'customer', %s, %s)",
-                (name, email, pwd, phone, addr)
+                "INSERT INTO users (name, email, password, role, phone, address, loyalty_points) VALUES (%s, %s, %s, 'customer', %s, %s, %s)",
+                (name, email, pwd, phone, addr, points)
             )
             customer_ids.append(cursor.lastrowid)
 
         # 3. Create Requests and Reviews
-        print("Seeding requests and reviews...")
+        print("Seeding requests, payments, and reviews...")
         statuses = ['pending', 'accepted', 'completed', 'rejected', 'cancelled']
         
         for _ in range(60): # 60 requests
@@ -99,12 +108,28 @@ def seed_data():
             # Random date in last 3 months
             days_ago = random.randint(0, 90)
             date = datetime.now() - timedelta(days=days_ago)
+            scheduled = date + timedelta(days=random.randint(1, 3))
             
             cursor.execute(
-                "INSERT INTO requests (customer_id, worker_id, status, request_date) VALUES (%s, %s, %s, %s)",
-                (cust_id, work_id, status, date)
+                "INSERT INTO requests (customer_id, worker_id, status, request_date, scheduled_date) VALUES (%s, %s, %s, %s, %s)",
+                (cust_id, work_id, status, date, scheduled)
             )
             req_id = cursor.lastrowid
+            
+            # Retrieve worker wage for payment
+            cursor.execute("SELECT wage FROM workers WHERE user_id = %s", (work_id,))
+            wage = cursor.fetchone()[0]
+
+            # Payment Logic
+            if status == 'completed':
+                pmethod = random.choice(['cash', 'bkash', 'nagad'])
+                pstatus = 'pending' if pmethod == 'cash' else 'paid'
+                
+                cursor.execute(
+                    "INSERT INTO payments (request_id, amount_paid, payment_method, status) VALUES (%s, %s, %s, %s)",
+                    (req_id, wage, pmethod, pstatus)
+                )
+
             
             # If completed, maybe add a review
             if status == 'completed' and random.choice([True, True, False]): # Higher chance of review
