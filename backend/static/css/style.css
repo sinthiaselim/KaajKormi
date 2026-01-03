@@ -301,13 +301,13 @@ body {
     gap: 2rem;
 }
 
-@media (max-width: 992px) {
+@media (max-width: 768px) {
     .grid-layout {
         grid-template-columns: repeat(2, 1fr);
     }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 576px) {
     .grid-layout {
         grid-template-columns: 1fr;
     }
