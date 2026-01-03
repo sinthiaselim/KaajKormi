@@ -1,9 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from db import get_db_connection
 import mysql.connector
+import stripe
 
 app = Flask(__name__)
 app.secret_key = 'your_super_secret_key'  # Change this for production
+stripe.api_key = 'sk_test_51SlOfuPu4qRXX70nfcV7wSt5vwvZx8XUE36sN5saDyIWcqcsrj758RaJTRv97gMTXuTP2YtVhbJPhBwRRecGTB7B00xHUrmsiP'
 
 # Context Processor for Worker Images
 @app.context_processor
@@ -295,9 +297,58 @@ def request_service(worker_id):
 
 @app.route('/pay_now/<int:request_id>')
 def pay_now(request_id):
-    # Mock Payment
     if 'user_id' not in session or session.get('role') != 'customer':
         return redirect(url_for('login'))
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Fetch request details + worker wage
+    query = """
+        SELECT r.id, w.wage, w.job_category, u.name as worker_name
+        FROM requests r
+        JOIN workers w ON r.worker_id = w.user_id
+        JOIN users u ON w.user_id = u.id
+        WHERE r.id = %s
+    """
+    cursor.execute(query, (request_id,))
+    req_data = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if not req_data:
+        flash('Request not found.', 'danger')
+        return redirect(url_for('my_requests'))
+
+    try:
+        # Create Stripe Checkout Session
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'bdt',
+                    'product_data': {
+                        'name': f"Service: {req_data['job_category']} by {req_data['worker_name']}",
+                    },
+                    'unit_amount': int(float(req_data['wage']) * 100),  # Stripe expects amount in cents/poisha
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=url_for('payment_success', request_id=request_id, _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=url_for('payment_cancel', _external=True),
+        )
+        return redirect(checkout_session.url, code=303)
+    except Exception as e:
+        flash(f'Error creating payment session: {str(e)}', 'danger')
+        return redirect(url_for('my_requests'))
+
+@app.route('/payment_success/<int:request_id>')
+def payment_success(request_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    # In a real app, verify session_id with Stripe here
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -307,7 +358,12 @@ def pay_now(request_id):
     conn.close()
     
     flash('Payment successful! Service marked as completed.', 'success')
-    return redirect(url_for('customer_dashboard'))
+    return redirect(url_for('my_requests'))
+
+@app.route('/payment_cancel')
+def payment_cancel():
+    flash('Payment cancelled.', 'info')
+    return redirect(url_for('my_requests'))
 
 # --- Worker Routes ---
 
