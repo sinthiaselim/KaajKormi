@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS requests (
     customer_id INT NOT NULL,
     worker_id INT NOT NULL,
     status ENUM('pending', 'accepted', 'completed', 'rejected', 'cancelled') DEFAULT 'pending',
+    payment_method ENUM('cash', 'bkash', 'nagad') DEFAULT NULL,
+    payment_status ENUM('pending', 'paid') DEFAULT 'pending',
     request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES users(id),
     FOREIGN KEY (worker_id) REFERENCES workers(user_id)

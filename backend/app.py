@@ -309,6 +309,37 @@ def request_service(worker_id):
 def pay_now(request_id):
     if 'user_id' not in session or session.get('role') != 'customer':
         return redirect(url_for('login'))
+        
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Calculate amount (Simplified: Just using hourly wage as total for now)
+    cursor.execute("""
+        SELECT w.wage, r.payment_status 
+        FROM requests r 
+        JOIN workers w ON r.worker_id = w.user_id 
+        WHERE r.id = %s
+    """, (request_id,))
+    data = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    
+    if not data:
+        flash('Request not found', 'danger')
+        return redirect(url_for('customer_dashboard'))
+
+    if data['payment_status'] == 'paid':
+        flash('Already paid!', 'info')
+        return redirect(url_for('customer_dashboard'))
+
+    return render_template('customer/payment_selection.html', request_id=request_id, amount=data['wage'])
+
+@app.route('/process_payment/<int:request_id>', methods=['POST'])
+def process_payment(request_id):
+    if 'user_id' not in session or session.get('role') != 'customer':
+        return redirect(url_for('login'))
+        
+    payment_method = request.form.get('payment_method')
     
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -362,13 +393,27 @@ def payment_success(request_id):
     
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("UPDATE requests SET status = 'completed' WHERE id = %s", (request_id,))
+    
+    status = 'completed' if payment_method == 'cash' else 'completed' # Logic simplification: auto-complete for now
+    payment_status = 'pending' if payment_method == 'cash' else 'paid' # Cash is pending until worker confirms, Online is paid instantly (mock)
+    
+    cursor.execute("""
+        UPDATE requests 
+        SET status = %s, payment_method = %s, payment_status = %s 
+        WHERE id = %s
+    """, (status, payment_method, payment_status, request_id))
+    
     conn.commit()
     cursor.close()
     conn.close()
     
-    flash('Payment successful! Service marked as completed.', 'success')
-    return redirect(url_for('my_requests'))
+    if 'payment_method' in locals() and payment_method == 'cash':
+        flash('Order confirmed! Please pay cash to the worker.', 'info')
+    else:
+        # Fallback if payment_method is not defined or is online
+        flash('Payment successful! Service marked as completed.', 'success')
+        
+    return redirect(url_for('customer_dashboard'))
 
 @app.route('/payment_cancel')
 def payment_cancel():
