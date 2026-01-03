@@ -29,10 +29,12 @@
                 {% if session.get('role') == 'customer' %}
                 <a href="{{ url_for('customer_dashboard') }}" class="nav-link">Find Workers</a>
                 <a href="{{ url_for('my_requests') }}" class="nav-link">My Requests</a>
+                <a href="{{ url_for('view_messages') }}" class="nav-link">Messages</a>
                 {% else %}
                 <a href="{{ url_for('worker_dashboard') }}" class="nav-link">Home</a>
                 <a href="{{ url_for('worker_requests') }}" class="nav-link">Requests</a>
                 <a href="{{ url_for('worker_history') }}" class="nav-link">History</a>
+                <a href="{{ url_for('view_messages') }}" class="nav-link">Messages</a>
                 {% endif %}
                 <a href="{{ url_for('logout') }}" class="btn btn-outline">Logout</a>
                 {% else %}

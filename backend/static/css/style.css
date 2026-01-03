@@ -8,7 +8,7 @@
     /* Lively & Vibrant Color Palette */
     --primary-color: #4f46e5;
     /* Indigo 600 */
-    --primary-light: #818cf8;
+    --primary-light: #d7dbff;
     /* Indigo 400 */
     --secondary-color: #db2777;
     /* Pink 600 */
@@ -355,7 +355,7 @@ body {
 
 .hero-subtitle {
     font-size: 1.1rem;
-    color: #94a3b8;
+    color: #d4e1f4;
     margin-bottom: 2rem;
 }
 

@@ -35,11 +35,16 @@
         </div>
 
         {% if session.get('role') == 'customer' %}
-        <form action="{{ url_for('request_service', worker_id=worker.user_id) }}" method="POST"
-            style="margin-top: 2rem;">
-            <button type="submit" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem;">Request
-                Service</button>
-        </form>
+        <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+            <form action="{{ url_for('request_service', worker_id=worker.user_id) }}" method="POST">
+                <button type="submit" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem;">Request
+                    Service</button>
+            </form>
+            <a href="{{ url_for('chat', other_user_id=worker.user_id) }}" class="btn btn-outline"
+                style="padding: 1rem 2rem; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-regular fa-paper-plane"></i> Message
+            </a>
+        </div>
         {% endif %}
     </div>
 

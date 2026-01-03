@@ -447,6 +447,106 @@ def payment_cancel():
     flash('Payment cancelled.', 'info')
     return redirect(url_for('my_requests'))
 
+# --- Chat Routes ---
+
+@app.route('/chat/<int:other_user_id>', methods=['GET'])
+def chat(other_user_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+        
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Check if other user exists
+    cursor.execute("SELECT id, name, role FROM users WHERE id = %s", (other_user_id,))
+    other_user = cursor.fetchone()
+    
+    if not other_user:
+        flash('User not found.', 'danger')
+        conn.close()
+        return redirect(url_for('index'))
+
+    # Fetch conversation
+    user_id = session['user_id']
+    query = """
+        SELECT * FROM messages 
+        WHERE (sender_id = %s AND receiver_id = %s) 
+           OR (sender_id = %s AND receiver_id = %s)
+        ORDER BY timestamp ASC
+    """
+    cursor.execute(query, (user_id, other_user_id, other_user_id, user_id))
+    messages = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    return render_template('chat.html', other_user=other_user, messages=messages)
+
+@app.route('/send_message', methods=['POST'])
+def send_message():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+        
+    sender_id = session['user_id']
+    receiver_id = request.form['receiver_id']
+    message = request.form['message']
+    
+    if not message:
+         return redirect(url_for('chat', other_user_id=receiver_id))
+         
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO messages (sender_id, receiver_id, message) VALUES (%s, %s, %s)",
+        (sender_id, receiver_id, message)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+    
+    return redirect(url_for('chat', other_user_id=receiver_id))
+
+@app.route('/messages')
+def view_messages():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+        
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    user_id = session['user_id']
+    
+    # Find list of people user has chatted with (GROUP BY tricky in strict mode, simpler to iterate in python or complex query)
+    # Using a slightly complex query to get latest message per user
+    query = """
+        SELECT 
+            u.id, u.name, u.role,
+            m.message as last_message,
+            m.timestamp
+        FROM users u
+        JOIN (
+            SELECT 
+                CASE 
+                    WHEN sender_id = %s THEN receiver_id 
+                    ELSE sender_id 
+                END as other_id,
+                MAX(id) as max_msg_id
+            FROM messages
+            WHERE sender_id = %s OR receiver_id = %s
+            GROUP BY other_id
+        ) latest ON u.id = latest.other_id
+        JOIN messages m ON m.id = latest.max_msg_id
+        ORDER BY m.timestamp DESC
+    """
+    
+    cursor.execute(query, (user_id, user_id, user_id))
+    conversations = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    return render_template('my_messages.html', conversations=conversations)
+
 # --- Worker Routes ---
 
 @app.route('/worker_dashboard')
