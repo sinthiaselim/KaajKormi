@@ -12,6 +12,7 @@
         <thead style="background: #f9fafb;">
             <tr>
                 <th style="padding: 1rem; text-align: left;">Customer</th>
+                <th style="padding: 1rem; text-align: left;">Payment Info</th>
                 <th style="padding: 1rem; text-align: left;">Date</th>
                 <th style="padding: 1rem; text-align: left;">Status</th>
                 <th style="padding: 1rem; text-align: left;">Action</th>
@@ -20,17 +21,45 @@
         <tbody>
             {% for job in history %}
             <tr style="border-top: 1px solid var(--border-color);">
-                <td style="padding: 1rem;">{{ job.customer_name }}</td>
-                <td style="padding: 1rem;">{{ job.request_date }}</td>
+                <td style="padding: 1rem;">
+                    <strong>{{ job.customer_name }}</strong>
+                </td>
+                <td style="padding: 1rem;">
+                    {% if job.payment_method %}
+                    <div style="font-size: 0.875rem;">
+                        <span class="badge"
+                            style="background: #e0e7ff; color: #4338ca; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-weight: 600;">{{
+                            job.payment_method|upper }}</span>
+                        <span style="margin-left: 0.5rem; font-weight: 700;">৳{{ job.amount_paid }}</span>
+                        {% if job.payment_method == 'bkash' and job.transaction_id %}
+                        <div
+                            style="margin-top: 0.25rem; color: var(--text-muted); font-size: 0.75rem; line-height: 1.2;">
+                            Ref: {{ job.transaction_id }} <br>
+                            From: {{ job.sender_number }} ({{ job.sender_name }})
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <span class="text-muted">No payment record</span>
+                    {% endif %}
+                </td>
+                <td style="padding: 1rem; font-size: 0.875rem;">{{ job.request_date }}</td>
                 <td style="padding: 1rem;">
                     <span class="status-badge status-{{ job.status }}">
                         {{ job.status|title }}
                     </span>
+                    <br>
+                    {% if job.payment_status %}
+                    <small
+                        style="color: {% if job.payment_status == 'paid' %}#059669{% else %}#d97706{% endif %}; font-weight: 700; text-transform: uppercase; font-size: 0.65rem; margin-top: 0.25rem; display: inline-block;">
+                        {{ job.payment_status }}
+                    </small>
+                    {% endif %}
                 </td>
                 <td style="padding: 1rem;">
                     {% if job.status == 'accepted' %}
-                    <a href="{{ url_for('update_request', request_id=job.id, status='completed') }}"
-                        class="btn btn-primary" style="font-size: 0.875rem;">Mark Complete</a>
+                    <a href="{{ url_for('confirm_payment', request_id=job.id) }}" class="btn btn-success"
+                        style="font-size: 0.875rem; padding: 0.5rem 1rem;">Received</a>
                     {% else %}
                     -
                     {% endif %}

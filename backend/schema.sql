@@ -36,8 +36,11 @@ CREATE TABLE IF NOT EXISTS payments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     request_id INT NOT NULL,
     amount_paid DECIMAL(10, 2) NOT NULL,
-    payment_method ENUM('cash', 'bkash', 'nagad') NOT NULL,
+    payment_method ENUM('cash', 'bkash', 'card') NOT NULL,
     status ENUM('pending', 'paid') DEFAULT 'pending',
+    sender_name VARCHAR(100),
+    sender_number VARCHAR(20),
+    transaction_id VARCHAR(100),
     payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (request_id) REFERENCES requests(id)
 );

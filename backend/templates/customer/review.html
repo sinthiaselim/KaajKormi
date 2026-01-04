@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 600px; margin: 4rem auto;">
+    <div class="card" style="padding: 3rem; text-align: center;">
+        <h2 style="margin-bottom: 0.5rem;">Rate Your Service</h2>
+        <p class="text-muted" style="margin-bottom: 2rem;">How was your experience with <strong>{{ req_data.worker_name
+                }}</strong> for <strong>{{ req_data.job_category|replace('_', ' ')|title }}</strong>?</p>
+
+        <form action="{{ url_for('submit_review', request_id=request_id) }}" method="POST" id="review-form">
+            <!-- Interactive Stars -->
+            <div class="star-rating"
+                style="display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 2rem; flex-direction: row-reverse;">
+                <input type="radio" id="star5" name="rating" value="5" required /><label for="star5" title="5 stars"><i
+                        class="fa-solid fa-star"></i></label>
+                <input type="radio" id="star4" name="rating" value="4" /><label for="star4" title="4 stars"><i
+                        class="fa-solid fa-star"></i></label>
+                <input type="radio" id="star3" name="rating" value="3" /><label for="star3" title="3 stars"><i
+                        class="fa-solid fa-star"></i></label>
+                <input type="radio" id="star2" name="rating" value="2" /><label for="star2" title="2 stars"><i
+                        class="fa-solid fa-star"></i></label>
+                <input type="radio" id="star1" name="rating" value="1" /><label for="star1" title="1 star"><i
+                        class="fa-solid fa-star"></i></label>
+            </div>
+
+            <div style="text-align: left; margin-bottom: 2rem;">
+                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Your Feedback</label>
+                <textarea name="comment" class="form-control" rows="4" placeholder="Tell us more about the service..."
+                    style="resize: none; padding: 1rem; border-radius: 0.75rem; border: 1px solid var(--border-color); width: 100%; box-sizing: border-box;"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary full-width-btn"
+                style="padding: 1rem; font-size: 1.1rem; border-radius: 0.75rem; font-weight: 600;">Submit
+                Review</button>
+            <a href="{{ url_for('customer_dashboard') }}" class="text-muted"
+                style="display: block; margin-top: 1rem; font-size: 0.875rem;">Skip for now</a>
+        </form>
+    </div>
+</div>
+
+<style>
+    .star-rating label {
+        font-size: 2.5rem;
+        color: #d1d5db;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+
+    .star-rating input {
+        display: none;
+    }
+
+    .star-rating label:hover,
+    .star-rating label:hover~label,
+    .star-rating input:checked~label {
+        color: #fbbf24;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+</style>
+{% endblock %}

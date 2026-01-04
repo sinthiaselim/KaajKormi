@@ -26,16 +26,33 @@
                 <td style="padding: 1rem;">{{ req.job_category|replace('_', ' ')|title }}</td>
                 <td style="padding: 1rem;">{{ req.request_date }}</td>
                 <td style="padding: 1rem;">
-                    <span class="status-badge status-{{ req.status }}">
+                    {% if req.status == 'accepted' and req.payment_status %}
+                    <span class="status-badge"
+                        style="background: #e0f2fe; color: #0369a1; padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600;">Awaiting
+                        Confirmation</span>
+                    {% elif req.status == 'completed' %}
+                    <span class="status-badge status-completed"
+                        style="background: #dcfce7; color: #15803d; padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600;">Completed</span>
+                    {% else %}
+                    <span class="status-badge status-{{ req.status }}"
+                        style="padding: 0.25rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600;">
                         {{ req.status|title }}
                     </span>
+                    {% endif %}
                 </td>
                 <td style="padding: 1rem;">
-                    {% if req.status == 'completed' %}
-                    <span class="text-muted">Paid & Reviewed</span>
-                    {% elif req.status == 'accepted' %}
+                    {% if req.status == 'accepted' %}
+                    {% if not req.payment_status %}
                     <a href="{{ url_for('pay_now', request_id=req.id) }}" class="btn btn-success"
-                        style="font-size: 0.875rem;">Pay Now</a>
+                        style="font-size: 0.875rem; padding: 0.4rem 0.8rem;">Pay Now</a>
+                    {% else %}
+                    <a href="{{ url_for('submit_review', request_id=req.id) }}" class="btn btn-primary"
+                        style="font-size: 0.875rem; padding: 0.4rem 0.8rem; background: var(--primary-color);">Write
+                        Review</a>
+                    {% endif %}
+                    {% elif req.status == 'completed' %}
+                    <a href="{{ url_for('submit_review', request_id=req.id) }}" class="btn btn-outline"
+                        style="font-size: 0.875rem; padding: 0.4rem 0.8rem; border: 1px solid var(--primary-color); color: var(--primary-color);">Review</a>
                     {% else %}
                     -
                     {% endif %}

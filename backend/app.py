@@ -230,34 +230,60 @@ def worker_profile(worker_id):
     
     return render_template('customer/worker_profile.html', worker=worker, reviews=reviews, can_review=can_review)
 
-@app.route('/submit_review/<int:request_id>', methods=['POST'])
+@app.route('/submit_review/<int:request_id>', methods=['GET', 'POST'])
 def submit_review(request_id):
     if 'user_id' not in session or session.get('role') != 'customer':
         return redirect(url_for('login'))
         
-    rating = request.form['rating']
-    comment = request.form['comment']
+    if request.method == 'POST':
+        rating = request.form['rating']
+        comment = request.form['comment']
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                "INSERT INTO reviews (request_id, rating, comment) VALUES (%s, %s, %s)",
+                (request_id, rating, comment)
+            )
+            
+            # Update worker average rating (Simplified logic)
+            cursor.execute("""
+                UPDATE workers w
+                JOIN requests r ON w.user_id = r.worker_id
+                SET w.rating_avg = (SELECT AVG(rating) FROM reviews WHERE request_id IN (SELECT id FROM requests WHERE worker_id = w.user_id))
+                WHERE r.id = %s
+            """, (request_id,))
+            
+            conn.commit()
+            flash('Review submitted successfully!', 'success')
+        except Exception as e:
+            flash(f'Error submitting review: {e}', 'danger')
+        finally:
+            cursor.close()
+            conn.close()
+            
+        return redirect(url_for('customer_dashboard'))
     
+    # GET: Show review page
     conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute(
-            "INSERT INTO reviews (request_id, rating, comment) VALUES (%s, %s, %s)",
-            (request_id, rating, comment)
-        )
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT r.id, u.name as worker_name, w.job_category
+        FROM requests r
+        JOIN users u ON r.worker_id = u.id
+        JOIN workers w ON u.id = w.user_id
+        WHERE r.id = %s
+    """, (request_id,))
+    req_data = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    
+    if not req_data:
+        flash('Request not found', 'danger')
+        return redirect(url_for('customer_dashboard'))
         
-        # Update worker average rating (Simplified logic)
-        # In a real app, you'd trigger a recalculation
-        
-        conn.commit()
-        flash('Review submitted successfully!', 'success')
-    except Exception as e:
-        flash(f'Error submitting review: {e}', 'danger')
-    finally:
-        cursor.close()
-        conn.close()
-        
-    return redirect(url_for('customer_dashboard'))
+    return render_template('customer/review.html', request_id=request_id, req_data=req_data)
 
 @app.route('/my_requests')
 def my_requests():
@@ -267,12 +293,14 @@ def my_requests():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Fetch My Requests
+    # Fetch My Requests with payment status
     cursor.execute("""
-        SELECT r.id, r.status, r.request_date, u.name as worker_name, w.job_category 
+        SELECT r.id, r.status, r.request_date, u.name as worker_name, w.job_category,
+               p.status as payment_status
         FROM requests r
         JOIN users u ON r.worker_id = u.id
         JOIN workers w ON u.id = w.user_id
+        LEFT JOIN payments p ON r.id = p.request_id
         WHERE r.customer_id = %s
         ORDER BY r.request_date DESC
     """, (session['user_id'],))
@@ -367,15 +395,45 @@ def process_payment(request_id):
     """
     cursor.execute(query, (request_id,))
     req_data = cursor.fetchone()
-    cursor.close()
-    conn.close()
 
     if not req_data:
+        cursor.close()
+        conn.close()
         flash('Request not found.', 'danger')
         return redirect(url_for('my_requests'))
 
+    if payment_method in ['cash', 'bkash']:
+        try:
+            sender_name = request.form.get('holder_name')
+            sender_number = request.form.get('phone_number')
+            transaction_id = request.form.get('reference_id')
+            
+            cursor.execute("""
+                INSERT INTO payments (request_id, amount_paid, payment_method, status, sender_name, sender_number, transaction_id) 
+                VALUES (%s, %s, %s, 'pending', %s, %s, %s)
+            """, (request_id, req_data['wage'], payment_method, sender_name, sender_number, transaction_id))
+            
+            # Update request status to 'accepted' if it was 'pending'
+            cursor.execute("UPDATE requests SET status = 'accepted' WHERE id = %s AND status = 'pending'", (request_id,))
+            
+            conn.commit()
+            
+            if payment_method == 'cash':
+                flash('Order confirmed! Please pay cash to the worker after service.', 'info')
+            else:
+                flash('bKash details submitted! Please wait for worker confirmation.', 'info')
+                
+            return redirect(url_for('submit_review', request_id=request_id))
+        except Exception as e:
+            conn.rollback()
+            flash(f'Error recording payment: {e}', 'danger')
+            return redirect(url_for('pay_now', request_id=request_id))
+        finally:
+            cursor.close()
+            conn.close()
+    
+    # Handle Stripe/Card
     try:
-        # Create Stripe Checkout Session
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=[{
@@ -384,7 +442,7 @@ def process_payment(request_id):
                     'product_data': {
                         'name': f"Service: {req_data['job_category']} by {req_data['worker_name']}",
                     },
-                    'unit_amount': int(float(req_data['wage']) * 100),  # Stripe expects amount in cents/poisha
+                    'unit_amount': int(float(req_data['wage']) * 100),
                 },
                 'quantity': 1,
             }],
@@ -396,42 +454,37 @@ def process_payment(request_id):
     except Exception as e:
         flash(f'Error creating payment session: {str(e)}', 'danger')
         return redirect(url_for('my_requests'))
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.route('/payment_success/<int:request_id>')
 def payment_success(request_id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    payment_method = request.args.get('pm', 'card') # Default to card if from stripe callback
-    
-    # Logic simplification
-    status = 'completed' # Service is completed once paid
-    payment_status = 'pending' if payment_method == 'cash' else 'paid'
+    payment_method = request.args.get('pm', 'card')
     
     conn = get_db_connection()
     cursor = conn.cursor()
     
     try:
-        # 1. Update Request Status
-        cursor.execute("UPDATE requests SET status = %s WHERE id = %s", (status, request_id))
-        
-        # 2. Insert into Payments Table
         # Fetch wage first
         cursor.execute("SELECT w.wage FROM requests r JOIN workers w ON r.worker_id = w.user_id WHERE r.id = %s", (request_id,))
         res = cursor.fetchone()
         wage = res[0] if res else 0
         
+        # 1. Insert into Payments Table
         cursor.execute("""
             INSERT INTO payments (request_id, amount_paid, payment_method, status) 
-            VALUES (%s, %s, %s, %s)
-        """, (request_id, wage, payment_method, payment_status))
+            VALUES (%s, %s, %s, 'paid')
+        """, (request_id, wage, payment_method))
+        
+        # 2. Update Request Status to 'accepted' (Worker still needs to confirm receipt to set to 'completed')
+        cursor.execute("UPDATE requests SET status = 'accepted' WHERE id = %s", (request_id,))
         
         conn.commit()
-        
-        if payment_method == 'cash':
-            flash('Order confirmed! Please pay cash to the worker.', 'info')
-        else:
-            flash('Payment successful! Service marked as completed.', 'success')
+        flash('Payment successful! Your order is being processed.', 'success')
             
     except Exception as e:
         conn.rollback()
@@ -440,7 +493,7 @@ def payment_success(request_id):
         cursor.close()
         conn.close()
         
-    return redirect(url_for('customer_dashboard'))
+    return redirect(url_for('submit_review', request_id=request_id))
 
 @app.route('/payment_cancel')
 def payment_cancel():
@@ -587,11 +640,14 @@ def worker_history():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Fetch History
+    # Fetch History with Payment details
     cursor.execute("""
-        SELECT r.id, r.status, r.request_date, u.name as customer_name
+        SELECT r.id, r.status, r.request_date, u.name as customer_name,
+               p.payment_method, p.amount_paid, p.status as payment_status,
+               p.sender_name, p.sender_number, p.transaction_id
         FROM requests r
         JOIN users u ON r.customer_id = u.id
+        LEFT JOIN payments p ON r.id = p.request_id
         WHERE r.worker_id = %s AND r.status != 'pending'
         ORDER BY r.request_date DESC
     """, (session['user_id'],))
@@ -619,6 +675,32 @@ def update_request(request_id, status):
     
     flash(f'Request {status}!', 'success')
     return redirect(url_for('worker_dashboard'))
+
+@app.route('/confirm_payment/<int:request_id>')
+def confirm_payment(request_id):
+    if 'user_id' not in session or session.get('role') != 'worker':
+        return redirect(url_for('login'))
+        
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # 1. Update Payment Status to 'paid'
+        cursor.execute("UPDATE payments SET status = 'paid' WHERE request_id = %s", (request_id,))
+        
+        # 2. Update Request Status to 'completed'
+        cursor.execute("UPDATE requests SET status = 'completed' WHERE id = %s", (request_id,))
+        
+        conn.commit()
+        flash('Payment confirmed! Job marked as completed.', 'success')
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error confirming payment: {e}', 'danger')
+    finally:
+        cursor.close()
+        conn.close()
+        
+    return redirect(url_for('worker_history'))
 
 if __name__ == '__main__':
     app.run(debug=True)

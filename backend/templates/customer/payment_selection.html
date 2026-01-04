@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" style="max-width: 600px; margin: 4rem auto;">
+    <div class="card" style="text-align: center; padding: 3rem;">
+        <h2 style="margin-bottom: 1rem;">Select Payment Method</h2>
+        <p class="text-muted" style="margin-bottom: 2rem;">Total Amount: ৳{{ amount }}</p>
+
+        <form action="{{ url_for('process_payment', request_id=request_id) }}" method="POST">
+            <div style="display: grid; gap: 1rem; margin-bottom: 2rem;">
+                <!-- Cash -->
+                <label class="payment-option"
+                    style="border: 2px solid var(--border-color); padding: 1.5rem; border-radius: 1rem; cursor: pointer; display: flex; align-items: center; gap: 1rem; transition: all 0.2s;">
+                    <input type="radio" name="payment_method" value="cash" checked style="transform: scale(1.5);">
+                    <div style="text-align: left;">
+                        <h4 style="margin: 0;">Cash on Delivery</h4>
+                        <small class="text-muted">Pay the worker directly after service.</small>
+                    </div>
+                    <i class="fa-solid fa-money-bill-wave"
+                        style="margin-left: auto; font-size: 1.5rem; color: var(--success-color);"></i>
+                </label>
+
+                <!-- bKash -->
+                <label class="payment-option"
+                    style="border: 2px solid var(--border-color); padding: 1.5rem; border-radius: 1rem; cursor: pointer; display: flex; align-items: center; gap: 1rem; transition: all 0.2s;">
+                    <input type="radio" name="payment_method" value="bkash" style="transform: scale(1.5);">
+                    <div style="text-align: left;">
+                        <h4 style="margin: 0; color: #e2136e;">bKash</h4>
+                        <small class="text-muted">Pay via bKash Personal/Merchant.</small>
+                    </div>
+                    <img src="https://companieslogo.com/img/orig/BKASH.DH-559d8c6b.png"
+                        style="height: 30px; margin-left: auto;">
+                </label>
+
+                <!-- bKash Details and Instructions -->
+                <div id="bkash-details" style="display: none; text-align: left; padding: 1.5rem; border: 1px solid #e2136e; border-radius: 1rem; background: #fff5f8; margin-top: -0.5rem;">
+                    <h5 style="color: #e2136e; margin-bottom: 1rem;"><i class="fa-solid fa-circle-info"></i> How to Pay:</h5>
+                    <ol style="font-size: 0.875rem; color: #555; margin-bottom: 1.5rem; padding-left: 1.25rem;">
+                        <li>Open bKash app</li>
+                        <li>Select 'Make Payment'</li>
+                        <li>Search 'KaajKormi'</li>
+                        <li>Select service and complete the payment of ৳{{ amount }}</li>
+                    </ol>
+                    <div style="display: grid; gap: 1rem;">
+                        <div>
+                            <label style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.25rem;">Phone Number Holder Name</label>
+                            <input type="text" name="holder_name" class="form-control" placeholder="Enter name">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.25rem;">Phone Number (Sender)</label>
+                            <input type="text" name="phone_number" class="form-control" placeholder="01XXXXXXXXX">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.25rem;">Reference ID</label>
+                            <input type="text" name="reference_id" class="form-control" placeholder="Enter Reference ID">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Credit/Debit Card -->
+                <label class="payment-option"
+                    style="border: 2px solid var(--border-color); padding: 1.5rem; border-radius: 1rem; cursor: pointer; display: flex; align-items: center; gap: 1rem; transition: all 0.2s;">
+                    <input type="radio" name="payment_method" value="card" style="transform: scale(1.5);">
+                    <div style="text-align: left;">
+                        <h4 style="margin: 0; color: #6366f1;">Credit/Debit Card</h4>
+                        <small class="text-muted">Pay securely via Stripe.</small>
+                    </div>
+                    <i class="fa-solid fa-credit-card"
+                        style="margin-left: auto; font-size: 1.5rem; color: #6366f1;"></i>
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary full-width-btn"
+                style="padding: 1rem; font-size: 1.1rem; border: none; border-radius: 0.75rem; font-weight: 600; cursor: pointer;">Confirm & Go to Review</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const radios = document.querySelectorAll('input[name="payment_method"]');
+        const bkashDetails = document.getElementById('bkash-details');
+
+        function toggleDetails() {
+            const selected = document.querySelector('input[name="payment_method"]:checked').value;
+            if (selected === 'bkash') {
+                bkashDetails.style.display = 'block';
+            } else {
+                bkashDetails.style.display = 'none';
+            }
+        }
+
+        radios.forEach(radio => radio.addEventListener('change', toggleDetails));
+        toggleDetails(); // Initial state
+    });
+</script>
+
+<style>
+    .payment-option:hover {
+        border-color: var(--primary-color) !important;
+        background: var(--bg-color);
+    }
+
+    .payment-option:has(input:checked) {
+        border-color: var(--primary-color) !important;
+        background: #eff6ff;
+        box-shadow: 0 0 0 2px var(--primary-color);
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        box-sizing: border-box;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #e2136e;
+        box-shadow: 0 0 0 2px rgba(226, 19, 110, 0.1);
+    }
+</style>
+{% endblock %}
