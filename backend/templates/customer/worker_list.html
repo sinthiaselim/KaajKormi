@@ -34,7 +34,11 @@
 {% else %}
 <div style="text-align: center; padding: 3rem;">
     <p class="text-muted">No workers found matching your criteria.</p>
+    {% if session.get('role') == 'worker' %}
+    <a href="{{ url_for('worker_dashboard') }}" class="btn btn-primary">Try searching something else</a>
+    {% else %}
     <a href="{{ url_for('customer_dashboard') }}" class="btn btn-primary">Try searching something else</a>
+    {% endif %}
 </div>
 {% endif %}
 {% endblock %}
