@@ -240,8 +240,15 @@ def submit_review(request_id):
         comment = request.form['comment']
         
         conn = get_db_connection()
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
         try:
+            # Check if job is completed
+            cursor.execute("SELECT status FROM requests WHERE id = %s", (request_id,))
+            req = cursor.fetchone()
+            if not req or req['status'] != 'completed':
+                flash('You can only review completed jobs.', 'warning')
+                return redirect(url_for('customer_dashboard'))
+
             cursor.execute(
                 "INSERT INTO reviews (request_id, rating, comment) VALUES (%s, %s, %s)",
                 (request_id, rating, comment)
